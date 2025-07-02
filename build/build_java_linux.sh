@@ -16,5 +16,7 @@ JAVA_DIST=../../../dist/java
 rm -rf $JAVA_DIST && mkdir -p $JAVA_DIST 
 cp maudejni.jar $JAVA_DIST 
 cp libmaudejni.so $JAVA_DIST 
+cp ../installdir/lib/libmaude.so $JAVA_DIST
+cp -r es $JAVA_DIST
 
 echo "Done: see artifacts at maude-bindings/dist/java"
