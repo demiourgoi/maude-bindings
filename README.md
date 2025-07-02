@@ -43,6 +43,14 @@ cmake --build .
 For some language targets this will be enough, but additional steps could be expected for others.
 
 
+## Building Java bindings (WIP)
+
+```bash
+cd build
+make clean build/java
+```
+
+
 Documentation
 -------------
 
