@@ -47,8 +47,44 @@ For some language targets this will be enough, but additional steps could be exp
 
 ```bash
 cd build
+# also run `make image/build` the first time to generate the build image
 make clean build/java
 ```
+
+Quick test: create the [hello world from the docs](https://fadoss.github.io/maude-bindings/babel.html) at the root of this repo.
+
+```java
+import es.ucm.maude.bindings.*;
+
+/*
+
+javac -cp  dist/java/maudejni.jar Example.java
+LD_LIBRARY_PATH=dist/java MAUDE_LIB=${HOME}/systems/maude/latest java -cp "dist/java/maudejni.jar:." Example 
+ */
+
+public class Example {
+    public static void main(String[] args) {
+        System.out.println("Hi");
+
+        System.loadLibrary("maudejni");
+
+        maude.init();
+        var m = maude.getModule("NAT");
+        Term t = m.parseTerm("2 * 3");
+        t.reduce();
+        System.out.println(t);
+    }
+}
+```
+
+Build and run the hello world
+
+```bash
+javac -cp  dist/java/maudejni.jar Example.java
+LD_LIBRARY_PATH=dist/java MAUDE_LIB=${HOME}/systems/maude/latest java -cp "dist/java/maudejni.jar:." Example 
+```
+
+where `MAUDE_LIB` should be adjusted to the root of your [Maude installation](https://github.com/maude-lang/Maude/releases/), otherwise you'll get an error `Warning: <automatic>: unable to locate file: prelude.maude`.
 
 
 Documentation
