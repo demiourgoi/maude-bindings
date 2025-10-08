@@ -64,7 +64,7 @@ LD_LIBRARY_PATH=dist/java MAUDE_LIB=${HOME}/systems/maude/latest java -cp "dist/
 
 public class Example {
     public static void main(String[] args) {
-        System.out.println("Hi");
+        System.out.println("Loading Maude bindings");
 
         System.loadLibrary("maudejni");
 
