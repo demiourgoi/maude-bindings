@@ -10,7 +10,7 @@ Then build as follows:
 
 ```bash
 # add the native libraries
-cp ../dist/java/*.so  lib/src/main/resources/META-INF/native/linux/
+cp ../dist/java/*.so  lib/src/main/resources/native/linux/
 
 # FIXME make prelude.maude available so `maude.getModule("NAT")` does not fail on lib/src/test/java/es/ucm/maude/bindings/HelloWorldTest.java
 export MAUDE_LIB=${HOME}/systems/maude/latest
@@ -19,7 +19,7 @@ export MAUDE_LIB=${HOME}/systems/maude/latest
 make clean build
 
 # check the jar contains the native libs
-jar tf lib/build/libs/lib.jar | grep "META-INF/native"
+jar tf lib/build/libs/lib.jar | grep "native"
 ```
 
 ## Limitations

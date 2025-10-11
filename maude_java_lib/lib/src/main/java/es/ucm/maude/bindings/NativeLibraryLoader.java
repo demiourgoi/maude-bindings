@@ -13,7 +13,7 @@ import java.nio.file.Files;
  */
 public class NativeLibraryLoader {
     
-    private static final String NATIVE_LIB_PATH = "META-INF/native/linux/";
+    private static final String NATIVE_LIB_PATH = "native/linux/";
     private static final String[] LIBRARIES = {"libmaude.so", "libmaudejni.so"};
     private static boolean librariesLoaded = false;
     private static File tempDir;
