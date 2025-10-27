@@ -12,8 +12,12 @@ Then build as follows:
 # add the native libraries
 cp ../dist/java/*.so  lib/src/main/resources/native/linux/
 
-# FIXME make prelude.maude available so `maude.getModule("NAT")` does not fail on lib/src/test/java/es/ucm/maude/bindings/HelloWorldTest.java
-export MAUDE_LIB=${HOME}/systems/maude/latest
+# Add the Maude prelude
+cd ${HOME}/systems/maude/latest && mkdir -p maude-prelude && cp *.maude maude-prelude/
+zip -r maude-prelude.zip maude-prelude && rm -rf maude-prelude && cd -
+cp ${HOME}/systems/maude/latest/maude-prelude.zip lib/src/main/resources
+make build
+jar tf lib/build/libs/lib.jar | grep prelude
 
 # tests
 make clean build
@@ -23,6 +27,14 @@ jar tf lib/build/libs/lib.jar | grep "native"
 ```
 
 ## Limitations
+
+Note in Java there is no reliable way to [set an environment variable](https://www.baeldung.com/java-set-environment-variable-runtime) of the JVM process, Java prefers setting JVM properties. This means that we cannot set the env var `MAUDE_LIB` from Java, so we get a warning log `Warning: <automatic>: unable to locate file: prelude.maude` when running `maude.init();`. However, a workaround is loading the prelude manually with `maude.load`, as follows:
+
+```java
+maude.load(System.getenv("HOME") + "/systems/maude/latest/prelude.maude");
+```
+
+Note this must be done BEFORE loading any standard module like e.g. `maude.getModule("NAT");`. 
 
 Currently this library only works on Linux x86_64. For development on other platforms consider using Docker.
 

@@ -5,17 +5,20 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
- * Utility class for loading native libraries embedded in JAR files.
- * This class extracts the native libraries to a temporary directory
- * and loads them using System.load().
+ * Runtime initialization class for Maude bindings.
+ * This class handles loading native libraries and Maude prelude files.
  */
-public class NativeLibraryLoader {
+public class MaudeRuntime {
     
     private static final String NATIVE_LIB_PATH = "native/linux/";
     private static final String[] LIBRARIES = {"libmaude.so", "libmaudejni.so"};
+    private static final String PRELUDE_ZIP_RESOURCE = "maude-prelude.zip";
     private static boolean librariesLoaded = false;
+    private static boolean initialized = false;
     private static File tempDir;
     
     /**
@@ -51,7 +54,7 @@ public class NativeLibraryLoader {
      * Extracts a library from the JAR resources to a temporary file.
      */
     private static File extractLibrary(String resourcePath, String libraryName) throws IOException {
-        ClassLoader classLoader = NativeLibraryLoader.class.getClassLoader();
+        ClassLoader classLoader = MaudeRuntime.class.getClassLoader();
         InputStream inputStream = classLoader.getResourceAsStream(resourcePath);
         
         if (inputStream == null) {
@@ -114,5 +117,76 @@ public class NativeLibraryLoader {
             }
         }
         directory.delete();
+    }
+    
+    /**
+     * Loads the Maude prelude files from the bundled ZIP resource.
+     * Extracts the ZIP to a temporary directory and calls maude.load() for each .maude file.
+     */
+    public static synchronized void loadPrelude() {
+        if (tempDir == null) {
+            throw new IllegalStateException("Native libraries must be loaded before loading prelude");
+        }
+        
+        ClassLoader classLoader = MaudeRuntime.class.getClassLoader();
+        InputStream zipStream = classLoader.getResourceAsStream(PRELUDE_ZIP_RESOURCE);
+        
+        if (zipStream == null) {
+            throw new RuntimeException("Prelude ZIP resource not found: " + PRELUDE_ZIP_RESOURCE);
+        }
+        
+        File preludeDir = new File(tempDir, "maude-prelude");
+        preludeDir.mkdirs();
+        preludeDir.deleteOnExit();
+        
+        try (ZipInputStream zis = new ZipInputStream(zipStream)) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(".maude")) {
+                    File outputFile = new File(preludeDir, new File(entry.getName()).getName());
+                    outputFile.deleteOnExit();
+                    
+                    try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        while ((bytesRead = zis.read(buffer)) != -1) {
+                            fos.write(buffer, 0, bytesRead);
+                        }
+                    }
+                    
+                    // Load the .maude file into Maude
+                    maude.load(outputFile.getAbsolutePath());
+                    System.out.println("Loaded Maude prelude file: " + outputFile.getName());
+                }
+                zis.closeEntry();
+            }
+            System.out.println("Maude prelude files loaded successfully");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load Maude prelude files", e);
+        }
+    }
+    
+    /**
+     * Initializes the Maude runtime by loading native libraries, initializing Maude,
+     * and loading the prelude files. This method is thread-safe and runs only once.
+     */
+    public static synchronized void init() {
+        if (initialized) {
+            return;
+        }
+        
+        loadNativeLibraries();
+        maude.init();
+        loadPrelude();
+        
+        initialized = true;
+        System.out.println("Maude runtime initialized successfully");
+    }
+    
+    /**
+     * Checks if the Maude runtime has been initialized.
+     */
+    public static boolean isInitialized() {
+        return initialized;
     }
 }

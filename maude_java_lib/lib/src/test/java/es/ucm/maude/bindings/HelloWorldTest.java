@@ -8,19 +8,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class HelloWorldTest {
     
     @BeforeAll
-    static void loadNativeLibraries() {
-        System.out.println("Loading Maude native libraries");
-        NativeLibraryLoader.loadNativeLibraries();
+    static void initializeMaudeRuntime() {
+        System.out.println("Initializing Maude runtime");
+        MaudeRuntime.init();
     }
     
     @AfterAll
     static void cleanup() {
-        NativeLibraryLoader.cleanup();
+        MaudeRuntime.cleanup();
     }
     
     @Test void someLibraryMethodReturnsTrue() {
-        maude.init();
-        maude.load(System.getenv("HOME") + "/systems/maude/latest/prelude.maude");
         Module nat = maude.getModule("NAT");
         assertNotNull(nat);
         Term term = nat.parseTerm("2 * 3");
