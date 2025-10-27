@@ -17,7 +17,6 @@ public class MaudeRuntime {
     private static final String NATIVE_LIB_PATH = "native/linux/";
     private static final String[] LIBRARIES = {"libmaude.so", "libmaudejni.so"};
     private static final String PRELUDE_ZIP_RESOURCE = "maude-prelude.zip";
-    private static boolean librariesLoaded = false;
     private static boolean initialized = false;
     private static File tempDir;
     
@@ -25,16 +24,16 @@ public class MaudeRuntime {
      * Loads the native libraries required by the Maude bindings.
      * This method should be called before any Maude operations.
      */
-    public static synchronized void loadNativeLibraries() {
-        if (librariesLoaded) {
+    private static synchronized void loadNativeLibraries() {
+        if (initialized) {
             return;
         }
+
+        if (tempDir == null) {
+            throw new IllegalStateException("Temporary directory must be created before loading native libraries");
+        }
         
-        try {
-            // Create a temporary directory for extracted libraries
-            tempDir = Files.createTempDirectory("maude-native").toFile();
-            tempDir.deleteOnExit();
-            
+        try {            
             // Extract and load each library
             for (String library : LIBRARIES) {
                 String resourcePath = NATIVE_LIB_PATH + library;
@@ -42,7 +41,6 @@ public class MaudeRuntime {
                 System.load(extractedFile.getAbsolutePath());
             }
             
-            librariesLoaded = true;
             System.out.println("Maude native libraries loaded successfully");
             
         } catch (IOException e) {
@@ -88,13 +86,7 @@ public class MaudeRuntime {
         return tempDir;
     }
     
-    /**
-     * Checks if the native libraries have been loaded.
-     */
-    public static boolean areLibrariesLoaded() {
-        return librariesLoaded;
-    }
-    
+
     /**
      * Cleans up the temporary directory (useful for testing).
      */
@@ -102,7 +94,6 @@ public class MaudeRuntime {
         if (tempDir != null && tempDir.exists()) {
             deleteDirectory(tempDir);
         }
-        librariesLoaded = false;
     }
     
     private static void deleteDirectory(File directory) {
@@ -123,9 +114,13 @@ public class MaudeRuntime {
      * Loads the Maude prelude files from the bundled ZIP resource.
      * Extracts the ZIP to a temporary directory and calls maude.load() for each .maude file.
      */
-    public static synchronized void loadPrelude() {
+    private static synchronized void loadPrelude() {
+        if (initialized) {
+            return;
+        }
+
         if (tempDir == null) {
-            throw new IllegalStateException("Native libraries must be loaded before loading prelude");
+            throw new IllegalStateException("Temporary directory must be created before loading prelude");
         }
         
         ClassLoader classLoader = MaudeRuntime.class.getClassLoader();
@@ -174,6 +169,13 @@ public class MaudeRuntime {
         if (initialized) {
             return;
         }
+        // Create a temporary directory for extracted jar resources
+        try {
+            tempDir = Files.createTempDirectory("maude-native").toFile();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create temporary directory", e);
+        }
+        tempDir.deleteOnExit();
         
         loadNativeLibraries();
         maude.init();
