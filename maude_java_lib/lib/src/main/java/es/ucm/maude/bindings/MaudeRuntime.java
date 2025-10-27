@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.LinkedList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -113,6 +115,7 @@ public class MaudeRuntime {
     /**
      * Loads the Maude prelude files from the bundled ZIP resource.
      * Extracts the ZIP to a temporary directory and calls maude.load() for each .maude file.
+     * Ensures prelude.maude is loaded first, followed by other files.
      */
     private static synchronized void loadPrelude() {
         if (initialized) {
@@ -136,6 +139,8 @@ public class MaudeRuntime {
         
         try (ZipInputStream zis = new ZipInputStream(zipStream)) {
             ZipEntry entry;
+            List<File> otherMaudeFiles = new LinkedList<>();
+
             while ((entry = zis.getNextEntry()) != null) {
                 if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(".maude")) {
                     File outputFile = new File(preludeDir, new File(entry.getName()).getName());
@@ -149,12 +154,23 @@ public class MaudeRuntime {
                         }
                     }
                     
-                    // Load the .maude file into Maude
-                    maude.load(outputFile.getAbsolutePath());
-                    System.out.println("Loaded Maude prelude file: " + outputFile.getName());
+                    // Load prelude.maude first, store others for later
+                    if (outputFile.getName().equalsIgnoreCase("prelude.maude")) {
+                        maude.load(outputFile.getAbsolutePath());
+                        System.out.println("Loaded Maude prelude file: " + outputFile.getName());
+                    } else {
+                        otherMaudeFiles.add(outputFile);
+                    }
                 }
                 zis.closeEntry();
             }
+
+            // Load all other .maude files after prelude.maude
+            for (File file : otherMaudeFiles) {
+                maude.load(file.getAbsolutePath());
+                System.out.println("Loaded Maude file: " + file.getName());
+            }
+
             System.out.println("Maude prelude files loaded successfully");
         } catch (IOException e) {
             throw new RuntimeException("Failed to load Maude prelude files", e);
