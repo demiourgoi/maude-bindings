@@ -20,6 +20,7 @@ class HelloWorldTest {
     
     @Test void someLibraryMethodReturnsTrue() {
         maude.init();
+        maude.load(System.getenv("HOME") + "/systems/maude/latest/prelude.maude");
         Module nat = maude.getModule("NAT");
         assertNotNull(nat);
         Term term = nat.parseTerm("2 * 3");
