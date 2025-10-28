@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -16,6 +17,7 @@ import java.util.zip.ZipInputStream;
  */
 public class MaudeRuntime {
     
+    private static final Logger logger = Logger.getLogger(MaudeRuntime.class.getName());
     private static final String NATIVE_LIB_PATH = "native/linux/";
     private static final String[] LIBRARIES = {"libmaude.so", "libmaudejni.so"};
     private static final String PRELUDE_ZIP_RESOURCE = "maude-prelude.zip";
@@ -43,7 +45,7 @@ public class MaudeRuntime {
                 System.load(extractedFile.getAbsolutePath());
             }
             
-            System.out.println("Maude native libraries loaded successfully");
+            logger.info("Maude native libraries loaded successfully");
             
         } catch (IOException e) {
             throw new RuntimeException("Failed to load native libraries", e);
@@ -157,7 +159,7 @@ public class MaudeRuntime {
                     // Load prelude.maude first, store others for later
                     if (outputFile.getName().equalsIgnoreCase("prelude.maude")) {
                         maude.load(outputFile.getAbsolutePath());
-                        System.out.println("Loaded Maude prelude file: " + outputFile.getName());
+                        logger.info("Loaded Maude prelude file: " + outputFile.getName());
                     } else {
                         otherMaudeFiles.add(outputFile);
                     }
@@ -168,10 +170,10 @@ public class MaudeRuntime {
             // Load all other .maude files after prelude.maude
             for (File file : otherMaudeFiles) {
                 maude.load(file.getAbsolutePath());
-                System.out.println("Loaded Maude file: " + file.getName());
+                logger.info("Loaded Maude file: " + file.getName());
             }
 
-            System.out.println("Maude prelude files loaded successfully");
+            logger.info("Maude prelude files loaded successfully");
         } catch (IOException e) {
             throw new RuntimeException("Failed to load Maude prelude files", e);
         }
@@ -198,7 +200,7 @@ public class MaudeRuntime {
         loadPrelude();
         
         initialized = true;
-        System.out.println("Maude runtime initialized successfully");
+        logger.info("Maude runtime initialized successfully");
     }
     
     /**
