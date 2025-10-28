@@ -11,6 +11,8 @@ class HelloWorldTest {
     static void initializeMaudeRuntime() {
         System.out.println("Initializing Maude runtime");
         MaudeRuntime.init();
+        // Calling init() after the first time is safe and noop
+        MaudeRuntime.init();
     }
     
     @AfterAll
@@ -18,7 +20,7 @@ class HelloWorldTest {
         MaudeRuntime.cleanup();
     }
     
-    @Test void someLibraryMethodReturnsTrue() {
+    @Test void weCanUseNATModuleForSimpleArithmetic() {
         Module nat = maude.getModule("NAT");
         assertNotNull(nat);
         Term term = nat.parseTerm("2 * 3");
