@@ -5,11 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.List;
-import java.util.LinkedList;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Runtime initialization class for Maude bindings.
@@ -20,7 +16,15 @@ public class MaudeRuntime {
     private static final Logger logger = Logger.getLogger(MaudeRuntime.class.getName());
     private static final String NATIVE_LIB_PATH = "native/linux/";
     private static final String[] LIBRARIES = {"libmaude.so", "libmaudejni.so"};
-    private static final String PRELUDE_ZIP_RESOURCE = "maude-prelude.zip";
+    private static final String MAUDE_STDLIB_RESOURCE_PREFIX = "maude/stdlib/" ;
+    private static final String MAUDE_PRELUDE_MODULE_NAME = "prelude.maude";
+    // Since we can't easily list resources in a directory with ClassLoader,
+    // we'll manually specify the modules to load (excluding prelude.maude which is loaded separately)
+    private static final  String[] MAUDE_STDLIB_MODULES = {
+        "file.maude", "linear.maude", "machine-int.maude", "metaInterpreter.maude",
+        "model-checker.maude", "prng.maude", "process.maude", "smt.maude",
+        "socket.maude", "term-order.maude", "time.maude"
+    };
     private static boolean initialized = false;
     private static File tempDir;
     
@@ -115,68 +119,62 @@ public class MaudeRuntime {
     }
     
     /**
-     * Loads the Maude prelude files from the bundled ZIP resource.
-     * Extracts the ZIP to a temporary directory and calls maude.load() for each .maude file.
-     * Ensures prelude.maude is loaded first, followed by other files.
+     * Loads a Maude module from the bundled standard library resources.
+     * Extracts the module file from the JAR and calls maude.load() on it.
+     * 
+     * @param moduleName the name of the module file (e.g., "prelude.maude")
      */
-    private static synchronized void loadPrelude() {
-        if (initialized) {
-            return;
-        }
-
+    public static synchronized void loadModule(String moduleName) {
         if (tempDir == null) {
-            throw new IllegalStateException("Temporary directory must be created before loading prelude");
+            throw new IllegalStateException("Temporary directory must be created before loading modules");
         }
         
         ClassLoader classLoader = MaudeRuntime.class.getClassLoader();
-        InputStream zipStream = classLoader.getResourceAsStream(PRELUDE_ZIP_RESOURCE);
+        String resourcePath = MAUDE_STDLIB_RESOURCE_PREFIX + moduleName;
+        InputStream inputStream = classLoader.getResourceAsStream(resourcePath);
         
-        if (zipStream == null) {
-            throw new RuntimeException("Prelude ZIP resource not found: " + PRELUDE_ZIP_RESOURCE);
+        if (inputStream == null) {
+            throw new RuntimeException("Maude module not found in JAR: " + resourcePath);
         }
         
-        File preludeDir = new File(tempDir, "maude-prelude");
-        preludeDir.mkdirs();
-        preludeDir.deleteOnExit();
+        File outputFile = new File(tempDir, moduleName);
+        outputFile.deleteOnExit();
         
-        try (ZipInputStream zis = new ZipInputStream(zipStream)) {
-            ZipEntry entry;
-            List<File> otherMaudeFiles = new LinkedList<>();
-
-            while ((entry = zis.getNextEntry()) != null) {
-                if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(".maude")) {
-                    File outputFile = new File(preludeDir, new File(entry.getName()).getName());
-                    outputFile.deleteOnExit();
-                    
-                    try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-                        byte[] buffer = new byte[8192];
-                        int bytesRead;
-                        while ((bytesRead = zis.read(buffer)) != -1) {
-                            fos.write(buffer, 0, bytesRead);
-                        }
-                    }
-                    
-                    // Load prelude.maude first, store others for later
-                    if (outputFile.getName().equalsIgnoreCase("prelude.maude")) {
-                        maude.load(outputFile.getAbsolutePath());
-                        logger.info("Loaded Maude prelude file: " + outputFile.getName());
-                    } else {
-                        otherMaudeFiles.add(outputFile);
-                    }
-                }
-                zis.closeEntry();
+        try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
             }
-
-            // Load all other .maude files after prelude.maude
-            for (File file : otherMaudeFiles) {
-                maude.load(file.getAbsolutePath());
-                logger.info("Loaded Maude file: " + file.getName());
-            }
-
-            logger.info("Maude prelude files loaded successfully");
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load Maude prelude files", e);
+            throw new RuntimeException("Failed to extract Maude module: " + moduleName, e);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                logger.warning("Failed to close input stream for module: " + moduleName);
+            }
         }
+        
+        maude.load(outputFile.getAbsolutePath());
+        logger.info("Loaded Maude module: " + moduleName);
+    }
+    
+    /**
+     * Loads the Maude standard library files from the bundled resources.
+     * Traverses the standard library directory and loads all .maude files except prelude.maude.
+     * This method is public so users can call it at their convenience.
+     */
+    public static synchronized void loadMaudeStdlib() {
+        if (tempDir == null) {
+            throw new IllegalStateException("Temporary directory must be created before loading standard library");
+        }
+        
+        for (String module : MAUDE_STDLIB_MODULES) {
+            loadModule(module);
+        }
+        
+        logger.info("Maude standard library modules loaded successfully");
     }
     
     /**
@@ -197,7 +195,7 @@ public class MaudeRuntime {
         
         loadNativeLibraries();
         maude.init();
-        loadPrelude();
+        loadModule(MAUDE_PRELUDE_MODULE_NAME);
         
         initialized = true;
         logger.info("Maude runtime initialized successfully");
