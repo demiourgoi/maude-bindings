@@ -11,13 +11,9 @@ Then build as follows:
 ```bash
 # add the native libraries
 cp ../dist/java/*.so  lib/src/main/resources/native/linux/
-
-# Add the Maude prelude
-cd ${HOME}/systems/maude/latest && mkdir -p maude-prelude && cp *.maude maude-prelude/
-zip -r maude-prelude.zip maude-prelude && rm -rf maude-prelude && cd -
-cp ${HOME}/systems/maude/latest/maude-prelude.zip lib/src/main/resources
-make build
-jar tf lib/build/libs/lib.jar | grep prelude
+# make sure in lib/src/main/resources/maude/stdlib you have all the .maude
+# files corresponding to the [Maude release](https://github.com/maude-lang/Maude/releases)
+# that makes the native libraries
 
 # tests
 make clean build
