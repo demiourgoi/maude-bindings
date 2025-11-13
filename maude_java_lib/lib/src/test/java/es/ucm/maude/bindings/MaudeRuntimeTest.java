@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import static org.junit.jupiter.api.Assertions.*;
 
-class HelloWorldTest {
+class MaudeRuntimeTest {
     
     @BeforeAll
     static void initializeMaudeRuntime() {
@@ -19,7 +19,7 @@ class HelloWorldTest {
     static void cleanup() {
         MaudeRuntime.cleanup();
     }
-    
+
     @Test void weCanUseNATModuleForSimpleArithmetic() {
         Module nat = maude.getModule("NAT");
         assertNotNull(nat);
@@ -28,5 +28,17 @@ class HelloWorldTest {
         System.out.println(term);
 
         assertEquals(6, term.toInt());
+    }
+
+    @Test void weCanUseTimeFromStdlib() {
+        MaudeRuntime.loadStdlibFileFromResources("time.maude");
+        Module time = maude.getModule("TIME");
+        assertNotNull(time);
+    }
+    
+    @Test void weCanUseTimeWithResourcesPath() {
+        MaudeRuntime.loadFromResources("maude/stdlib/time.maude");
+        Module time = maude.getModule("TIME");
+        assertNotNull(time);
     }
 }

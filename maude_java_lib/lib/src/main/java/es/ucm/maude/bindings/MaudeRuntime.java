@@ -20,7 +20,7 @@ public class MaudeRuntime {
     private static final String MAUDE_PRELUDE_MODULE_NAME = "prelude.maude";
     // Since we can't easily list resources in a directory with ClassLoader,
     // we'll manually specify the modules to load (excluding prelude.maude which is loaded separately)
-    private static final  String[] MAUDE_STDLIB_MODULES = {
+    private static final  String[] MAUDE_STDLIB_MODULE_FILES = {
         "file.maude", "linear.maude", "machine-int.maude", "metaInterpreter.maude",
         "model-checker.maude", "prng.maude", "process.maude", "smt.maude",
         "socket.maude", "term-order.maude", "time.maude"
@@ -119,25 +119,27 @@ public class MaudeRuntime {
     }
     
     /**
-     * Loads a Maude module from the bundled standard library resources.
-     * Extracts the module file from the JAR and calls maude.load() on it.
+     * Loads a Maude program from the jar resources
+     * Extracts the Maude program file from the JAR and calls maude.load() on it.
+     * Note a Maude source file can contain several modules, to use them you will have
+     * to use `maude.getModule` on each of those.
      * 
-     * @param moduleName the name of the module file (e.g., "prelude.maude")
+     * @param maudeProgramResourcePath the name of the module file (e.g., "prelude.maude")
      */
-    public static synchronized void loadModule(String moduleName) {
+    public static synchronized void loadFromResources(String maudeProgramResourcePath) {
         if (tempDir == null) {
             throw new IllegalStateException("Temporary directory must be created before loading modules");
         }
         
         ClassLoader classLoader = MaudeRuntime.class.getClassLoader();
-        String resourcePath = MAUDE_STDLIB_RESOURCE_PREFIX + moduleName;
-        InputStream inputStream = classLoader.getResourceAsStream(resourcePath);
+        InputStream inputStream = classLoader.getResourceAsStream(maudeProgramResourcePath);
         
         if (inputStream == null) {
-            throw new RuntimeException("Maude module not found in JAR: " + resourcePath);
+            throw new RuntimeException("Maude module not found in JAR: " + maudeProgramResourcePath);
         }
         
-        File outputFile = new File(tempDir, moduleName);
+        File outputFile = new File(tempDir, maudeProgramResourcePath);
+        outputFile.getParentFile().mkdirs();
         outputFile.deleteOnExit();
         
         try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
@@ -147,19 +149,31 @@ public class MaudeRuntime {
                 outputStream.write(buffer, 0, bytesRead);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to extract Maude module: " + moduleName, e);
+            throw new RuntimeException("Failed to extract Maude source file: " + maudeProgramResourcePath, e);
         } finally {
             try {
                 inputStream.close();
             } catch (IOException e) {
-                logger.warning("Failed to close input stream for module: " + moduleName);
+                logger.warning("Failed to close input stream for Maude source file: " + maudeProgramResourcePath);
             }
         }
         
         maude.load(outputFile.getAbsolutePath());
-        logger.info("Loaded Maude module: " + moduleName);
+        logger.info("Loaded Maude source file: " + maudeProgramResourcePath);
     }
-    
+
+    /**
+     * Loads a Maude source file from the bundled standard library resources.
+     * Extracts the Maude source file from the JAR and calls maude.load() on it.
+     * 
+     * @param moduleName the name of the file (e.g., "prelude.maude")
+     */
+    public static synchronized void loadStdlibFileFromResources(String moduleName) {
+        String moduleResourcePath = MAUDE_STDLIB_RESOURCE_PREFIX + moduleName ;
+        loadFromResources(moduleResourcePath);
+    }
+
+
     /**
      * Loads the Maude standard library files from the bundled resources.
      * Traverses the standard library directory and loads all .maude files except prelude.maude.
@@ -170,8 +184,8 @@ public class MaudeRuntime {
             throw new IllegalStateException("Temporary directory must be created before loading standard library");
         }
         
-        for (String module : MAUDE_STDLIB_MODULES) {
-            loadModule(module);
+        for (String module : MAUDE_STDLIB_MODULE_FILES) {
+            loadStdlibFileFromResources(module);
         }
         
         logger.info("Maude standard library modules loaded successfully");
@@ -194,8 +208,9 @@ public class MaudeRuntime {
         tempDir.deleteOnExit();
         
         loadNativeLibraries();
-        maude.init();
-        loadModule(MAUDE_PRELUDE_MODULE_NAME);
+        // load without prelude because we have not extracted the prelude from resources yet
+        maude.init(false);
+        loadStdlibFileFromResources(MAUDE_PRELUDE_MODULE_NAME);
         
         initialized = true;
         logger.info("Maude runtime initialized successfully");
