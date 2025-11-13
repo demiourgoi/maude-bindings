@@ -8,7 +8,17 @@
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     id 'java-library'
+
+    // Maven Publish plugin for publishing artifacts
+    id 'maven-publish'
 }
+
+// artifact properties
+group = 'es.ucm.maude'
+// Versioning: First 3 numbers are for the Maude release as in https://github.com/maude-lang/Maude/releases
+// the last number is a patch number for the Java bindings themselves
+version = '3.5.0.0'
+description = """Maude bindings for Java"""
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -20,12 +30,6 @@ dependencies {
     testImplementation libs.junit.jupiter
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-    // This dependency is exported to consumers, that is to say found on their compile classpath.
-    api libs.commons.math3
-
-    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
-    implementation libs.guava
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -38,4 +42,15 @@ java {
 tasks.named('test') {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = project.group
+            artifactId = 'bindings'
+            version = project.version
+        }
+    }
 }

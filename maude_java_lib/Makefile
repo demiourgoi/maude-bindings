@@ -45,3 +45,4 @@ build:	### build app (this also runs unit tests)
 
 publish/local: build	### publish this library to the local maven repo
 	$(GRADLE) publishToMavenLocal
+	echo "Library published to ~/.m2/repository/es/ucm/maude/bindings"

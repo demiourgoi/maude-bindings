@@ -22,6 +22,15 @@ make clean build
 jar tf lib/build/libs/lib.jar | grep "native"
 ```
 
+To publish the library to ~/.m2/repository/es/ucm/maude/bindings use
+
+```bash
+make clean release
+```
+
+For __release versioning__ we use the Maude release version plus an additional patch build to identify the bindings release themselves, see [build.gradle](./lib/build.gradle) for details.
+
+
 ## Limitations
 
 Note in Java there is no reliable way to [set an environment variable](https://www.baeldung.com/java-set-environment-variable-runtime) of the JVM process, Java prefers setting JVM properties. This means that we cannot set the env var `MAUDE_LIB` from Java, so we get a warning log `Warning: <automatic>: unable to locate file: prelude.maude` when running `maude.init();`. However, a workaround is loading the prelude manually with `maude.load`, as follows:
