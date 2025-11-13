@@ -33,15 +33,9 @@ For __release versioning__ we use the Maude release version plus an additional p
 
 ## Limitations
 
-Note in Java there is no reliable way to [set an environment variable](https://www.baeldung.com/java-set-environment-variable-runtime) of the JVM process, Java prefers setting JVM properties. This means that we cannot set the env var `MAUDE_LIB` from Java, so we get a warning log `Warning: <automatic>: unable to locate file: prelude.maude` when running `maude.init();`. However, a workaround is loading the prelude manually with `maude.load`, as follows:
+The Maude prelude and Maude stdlib is added to this jar, and the prelude is loaded by calling `MaudeRuntime.init()`. Note this must be done BEFORE loading any standard module like e.g. `maude.getModule("NAT");`. . See that class and [MaudeRuntimeTest](./lib/src/test/java/es/ucm/maude/bindings/MaudeRuntimeTest.java) for how to load other Maude from the Maude standard library, and in general from jar resources.
 
-```java
-maude.load(System.getenv("HOME") + "/systems/maude/latest/prelude.maude");
-```
-
-Note this must be done BEFORE loading any standard module like e.g. `maude.getModule("NAT");`. 
-
-Currently this library only works on Linux x86_64. For development on other platforms consider using Docker.
+Currently this library __only supports Linux x86_64__. For development on other platforms consider using Docker.
 
 ```bash
 $ file ../dist/java/libmaude.so 
