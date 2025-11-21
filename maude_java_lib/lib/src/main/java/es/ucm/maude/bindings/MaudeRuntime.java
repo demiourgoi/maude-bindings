@@ -243,6 +243,11 @@ public class MaudeRuntime {
         maude.init(false);
         loadStdlibFileFromResources(MAUDE_PRELUDE_MODULE_NAME);
         
+        // Register shutdown hook to clean up temporary directory on JVM exit
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            cleanup();
+        }));
+
         initialized = true;
         logger.info("Maude runtime initialized successfully");
     }
