@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.logging.Logger;
 
 /**
@@ -12,7 +14,7 @@ import java.util.logging.Logger;
  * This class handles loading native libraries and Maude prelude files.
  */
 public class MaudeRuntime {
-    
+    private static final Set<String> LOADED_MAUDE_SOURCES = new HashSet<>();
     private static final Logger logger = Logger.getLogger(MaudeRuntime.class.getName());
     private static final String NATIVE_LIB_PATH = "native/linux/";
     private static final String[] LIBRARIES = {"libmaude.so", "libmaudejni.so"};
@@ -130,6 +132,10 @@ public class MaudeRuntime {
         if (tempDir == null) {
             throw new IllegalStateException("Temporary directory must be created before loading modules");
         }
+        if (LOADED_MAUDE_SOURCES.contains(maudeProgramResourcePath)) {
+            logger.info("Skipping loading of previously loaded Maude source file: " + maudeProgramResourcePath);
+            return;
+        }
         
         ClassLoader classLoader = MaudeRuntime.class.getClassLoader();
         InputStream inputStream = classLoader.getResourceAsStream(maudeProgramResourcePath);
@@ -159,6 +165,7 @@ public class MaudeRuntime {
         }
         
         maude.load(outputFile.getAbsolutePath());
+        LOADED_MAUDE_SOURCES.add(maudeProgramResourcePath);
         logger.info("Loaded Maude source file: " + maudeProgramResourcePath);
     }
 
@@ -172,7 +179,6 @@ public class MaudeRuntime {
         String moduleResourcePath = MAUDE_STDLIB_RESOURCE_PREFIX + moduleName ;
         loadFromResources(moduleResourcePath);
     }
-
 
     /**
      * Loads the Maude standard library files from the bundled resources.

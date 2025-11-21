@@ -32,6 +32,8 @@ class MaudeRuntimeTest {
 
     @Test void weCanUseTimeFromStdlib() {
         MaudeRuntime.loadStdlibFileFromResources("time.maude");
+        // loading the same Maude source twice is ok
+        MaudeRuntime.loadStdlibFileFromResources("time.maude");
         Module time = maude.getModule("TIME");
         assertNotNull(time);
     }
