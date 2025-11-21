@@ -10,14 +10,14 @@ class MaudeRuntimeTest {
     @BeforeAll
     static void initializeMaudeRuntime() {
         System.out.println("Initializing Maude runtime");
-        MaudeRuntime.init();
+        MaudeRuntime.getInstance().init();
         // Calling init() after the first time is safe and noop
-        MaudeRuntime.init();
+        MaudeRuntime.getInstance().init();
     }
     
     @AfterAll
     static void cleanup() {
-        MaudeRuntime.cleanup();
+        MaudeRuntime.getInstance().cleanup();
     }
 
     @Test void weCanUseNATModuleForSimpleArithmetic() {
@@ -31,15 +31,15 @@ class MaudeRuntimeTest {
     }
 
     @Test void weCanUseTimeFromStdlib() {
-        MaudeRuntime.loadStdlibFileFromResources("time.maude");
+        MaudeRuntime.getInstance().loadStdlibFileFromResources("time.maude");
         // loading the same Maude source twice is ok
-        MaudeRuntime.loadStdlibFileFromResources("time.maude");
+        MaudeRuntime.getInstance().loadStdlibFileFromResources("time.maude");
         Module time = maude.getModule("TIME");
         assertNotNull(time);
     }
     
     @Test void weCanUseTimeWithResourcesPath() {
-        MaudeRuntime.loadFromResources("maude/stdlib/time.maude");
+        MaudeRuntime.getInstance().loadFromResources("maude/stdlib/time.maude");
         Module time = maude.getModule("TIME");
         assertNotNull(time);
     }
