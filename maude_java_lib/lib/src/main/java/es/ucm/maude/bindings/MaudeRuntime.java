@@ -26,7 +26,7 @@ public class MaudeRuntime {
         "socket.maude", "term-order.maude", "time.maude"
     };
     
-    private static final MaudeRuntime INSTANCE = new MaudeRuntime();
+    private static volatile MaudeRuntime INSTANCE = null;
     
     private final Set<String> loadedMaudeSources = new HashSet<>();
     private final Logger logger = Logger.getLogger(MaudeRuntime.class.getName());
@@ -41,9 +41,17 @@ public class MaudeRuntime {
     }
     
     /**
-     * Returns the singleton instance of MaudeRuntime.
+     * Returns the singleton instance of MaudeRuntime, already initialized.
      */
     public static MaudeRuntime getInstance() {
+        if (INSTANCE == null) {
+            synchronized (MaudeRuntime.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new MaudeRuntime();
+                    INSTANCE.init();
+                }
+            }
+        }
         return INSTANCE;
     }
     
