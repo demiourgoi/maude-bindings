@@ -179,7 +179,7 @@ public class MaudeRuntime {
             );
         }
         if (loadedMaudeSources.contains(maudeProgramResourcePath)) {
-            logger.info(
+            logger.fine(
                 "Skipping loading of previously loaded Maude source file: " +
                     maudeProgramResourcePath
             );
